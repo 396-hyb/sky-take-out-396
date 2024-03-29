@@ -33,10 +33,7 @@ public class EmployeeController {
     private EmployeeService employeeService;
     @Autowired
     private JwtProperties jwtProperties;
-//    @Autowired
-//    private EmployeeDTO employeeDTO;
-//    @Autowired
-//    private EmployeePageQueryDTO employeePageQueryDTO;
+
 
     /**
      * 登录

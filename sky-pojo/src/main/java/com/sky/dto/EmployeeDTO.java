@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 import java.io.Serializable;
 
 @Data
-@Component
 public class EmployeeDTO implements Serializable {
 
     private Long id;
