@@ -9,4 +9,8 @@ sky:
   alioss:
     endpoint: oss-cn-shanghai.aliyuncs.com
     bucket-name: sky-take-out-hyb
-
+  redis:
+    host: 192.168.164.128
+    port: 6379
+    password: 396396
+    database: 0
