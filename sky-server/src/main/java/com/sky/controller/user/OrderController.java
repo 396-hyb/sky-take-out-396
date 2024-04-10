@@ -1,5 +1,6 @@
 package com.sky.controller.user;
 
+import com.sky.dto.OrdersCancelDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.result.PageResult;
@@ -14,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-@RestController
+@RestController("userOrderController")
 @RequestMapping("/user/order")
 @Slf4j
 @Api(tags = "C端-订单接口")
@@ -103,5 +104,7 @@ public class OrderController {
         orderService.repetition(id);
         return Result.success();
     }
+
+
 
 }

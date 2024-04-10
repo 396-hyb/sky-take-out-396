@@ -54,4 +54,21 @@ public interface OrderMapper {
      * @return
      */
     Page<Orders> pageQuery(OrdersPageQueryDTO ordersPageQueryDTO);
+
+    /**
+     * 根据状态统计订单数量
+     * @param status
+     * @return
+     */
+    @Select("select count(id) from orders where status = #{status}")
+    Integer countStatus(Integer status);
+
+    /**
+     * 根据订单状态和时间查询订单
+     * @param status
+     * @param orderTime
+     * @return
+     */
+    @Select("select * from orders where status = #{status} and order_time < #{orderTime}")
+    List<Orders> getByStatusAndOrdertimeLT(Integer status, LocalDateTime orderTime);
 }
