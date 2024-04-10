@@ -1,5 +1,6 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -18,6 +19,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +50,8 @@ public class OrderServiceImpl implements OrderService {
     private UserMapper userMapper;
     @Autowired
     private WeChatPayUtil weChatPayUtil;
+    @Autowired
+    private WebSocketServer webSocketServer;
 
     /**
      * 用户下单
@@ -140,15 +146,10 @@ public class OrderServiceImpl implements OrderService {
         OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
         vo.setPackageStr(jsonObject.getString("package"));
 
-        //为替代微信支付成功后的数据库订单状态更新，多定义一个方法进行修改
+        //为替代微信支付成功后的数据库订单状态更新，直接使用下面的 paySuccess() 方法
+        String outTradeNo = ordersPaymentDTO.getOrderNumber();
+        paySuccess(outTradeNo);
 
-        Integer OrderPaidStatus = Orders.PAID; //支付状态，已支付
-        Integer OrderStatus = Orders.TO_BE_CONFIRMED;  //订单状态，待接单
-
-        //发现没有将支付时间 check_out属性赋值，所以在这里更新
-        LocalDateTime check_out_time = LocalDateTime.now();
-        Long orderId = orderMapper.getByNumber(ordersPaymentDTO.getOrderNumber()).getId();
-        orderMapper.updateStatus(OrderStatus, OrderPaidStatus, check_out_time, orderId);
 
         return vo;
     }
@@ -172,6 +173,17 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderMapper.update(orders);
+
+        //////////////////////////////////////////////
+        Map map = new HashMap();
+        map.put("type", 1);//消息类型，1表示来单提醒
+        map.put("orderId", orders.getId());
+        map.put("content", "订单号：" + outTradeNo);
+
+        //通过WebSocket实现来单提醒，向客户端浏览器推送消息
+        webSocketServer.sendToAllClient(JSON.toJSONString(map));
+        //////////////////////////////////////////////
+
     }
 
     @Override
@@ -365,12 +377,18 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
-        Orders orders = Orders.builder()
-                .id(ordersConfirmDTO.getId())
-                .status(Orders.CONFIRMED)
-                .build();
+        Orders orders = orderMapper.getByOrderId(ordersConfirmDTO.getId());
+        if(orders.getPayStatus() == 1){
+            Orders orders1 = Orders.builder()
+                    .id(ordersConfirmDTO.getId())
+                    .status(Orders.CONFIRMED)
+                    .build();
 
-        orderMapper.update(orders);
+            orderMapper.update(orders1);
+        }else{
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
     }
 
     /**
